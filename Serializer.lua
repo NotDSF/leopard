@@ -2,7 +2,6 @@ local config = {
   spaces = 4
 };
 
-local getGC  = getgc;
 local format = string.format;
 local rep    = string.rep;
 local Type   = type;
