@@ -48,7 +48,7 @@ Serialize = function(tbl, scope)
     elseif valueType == "table" then
       Serialized = Serialized .. format("%s%s = %s;\n", scopeTab2, formattedIndex, Serialize(v, scope+1));
     else
-      Serialized = Serialized .. format("%s%s = \"%s\";\n", scopeTab2, formattedIndex, Tostring(valueType), valueType); -- Unsupported types.
+      Serialized = Serialized .. format("%s%s = \"%s\";\n", scopeTab2, formattedIndex, Tostring(valueType)); -- Unsupported types.
     end;
     tblLen = tblLen + 1; -- # messes up with nil values
   end;
