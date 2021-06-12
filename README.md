@@ -1,4 +1,5 @@
 # Lua-Serializer
+A efficient Lua 5.1 Serializer
 
 ## Example
 
