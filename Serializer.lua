@@ -64,4 +64,8 @@ Serialize = function(tbl, scope)
   end;
 end;
 
-return Serialize;
+return {
+  Serialize = Serialize,
+  formatIndex = formatIndex,
+  formatString = formatString,
+};
