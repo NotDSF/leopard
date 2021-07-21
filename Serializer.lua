@@ -8,6 +8,7 @@ local Type     = type;
 local Pairs    = pairs;
 local gsub     = string.gsub;
 local Tostring = tostring;
+local concat   = table.concat;
 local Tab      = rep(" ", config.spaces or 4);
 
 local Serialize;
@@ -23,6 +24,8 @@ local function formatIndex(idx, scope)
   return format("[%s]", finishedFormat);
 end;
 
+-- Very scuffed method I know
+
 local function formatString(str) 
   for i,v in Pairs({ ["\n"] = "\\n", ["\t"] = "\\t", ["\""] = "\\\"" }) do
     str = gsub(str, i, v);
@@ -33,7 +36,7 @@ end;
 Serialize = function(tbl, scope) 
   scope = scope or 0;
 
-  local Serialized = "";
+  local Serialized = {};
   local scopeTab = rep(Tab, scope);
   local scopeTab2 = rep(Tab, scope+1);
 
@@ -41,31 +44,45 @@ Serialize = function(tbl, scope)
   for i,v in Pairs(tbl) do
     local formattedIndex = formatIndex(i, scope);
     local valueType = Type(v);
+    local SerializeIndex = #Serialized + 1;
     if valueType == "string" then -- Could of made it inline but its better to manage types this way.
-      Serialized = Serialized .. format("%s%s = \"%s\";\n", scopeTab2, formattedIndex, formatString(v));
+      Serialized[SerializeIndex] = format("%s%s = \"%s\",\n", scopeTab2, formattedIndex, formatString(v));
     elseif valueType == "number" or valueType == "boolean" then
-      Serialized = Serialized .. format("%s%s = %s;\n", scopeTab2, formattedIndex, Tostring(v));
+      Serialized[SerializeIndex] = format("%s%s = %s,\n", scopeTab2, formattedIndex, Tostring(v));
     elseif valueType == "table" then
-      Serialized = Serialized .. format("%s%s = %s;\n", scopeTab2, formattedIndex, Serialize(v, scope+1));
+      Serialized[SerializeIndex] = format("%s%s = %s,\n", scopeTab2, formattedIndex, Serialize(v, scope+1));
+    elseif valueType == "userdata" then
+      Serialized[SerializeIndex] = format("%s%s = newproxy(),\n", scopeTab2, formattedIndex);
     else
-      Serialized = Serialized .. format("%s%s = \"%s\";\n", scopeTab2, formattedIndex, Tostring(valueType)); -- Unsupported types.
+      Serialized[SerializeIndex] = format("%s%s = \"%s\",\n", scopeTab2, formattedIndex, Tostring(valueType)); -- Unsupported types.
     end;
     tblLen = tblLen + 1; -- # messes up with nil values
   end;
 
+  -- Remove last comma
+  local lastValue = Serialized[#Serialized];
+  if lastValue then
+    Serialized[#Serialized] = lastValue:sub(0, -3) .. "\n";
+  end;
+
   if tblLen > 0 then
     if scope < 1 then
-      return format("{\n%s}", Serialized);  
+      return format("{\n%s}", concat(Serialized));  
     else
-      return format("{\n%s%s}", Serialized, scopeTab);
+      return format("{\n%s%s}", concat(Serialized), scopeTab);
     end;
   else
     return "{}";
   end;
 end;
 
-return {
-  Serialize = Serialize,
+local SerializeL = {
   formatIndex = formatIndex,
-  formatString = formatString,
-};
+  formatString = formatString
+}
+
+return setmetatable(SerializeL, {
+  __call = function(self, ...)
+    return Serialize(...);
+  end
+});
