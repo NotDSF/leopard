@@ -6,7 +6,7 @@ A efficient Lua 5.1 Serializer
 ```lua
 local Serializer = require("./Serializer")
 
-print(Serializer.Serialize({
+print(Serializer({
   2,
   true,
   "Hello",
