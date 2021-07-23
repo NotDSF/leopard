@@ -24,6 +24,24 @@ local function formatIndex(idx, scope)
   return format("[%s]", finishedFormat);
 end;
 
+local function serializeArgs(tbl) 
+  local Serialized = {}; -- For performance reasons
+
+  for i,v in Pairs(tbl) do
+    local valueType = Type(v);
+    local SerializeIndex = #Serialized + 1;
+    if valueType == "string" then
+      Serialized[SerializeIndex] = format("\"%s\"", v);
+    elseif valueType == "table" then
+      Serialized[SerializeIndex] = Serialize(v, 0);
+    else
+      Serialized[SerializeIndex] = Tostring(v);
+    end;
+  end;
+
+  return concat(Serialized, ", ");
+end;
+
 -- Very scuffed method I know
 
 local function formatString(str) 
@@ -36,7 +54,7 @@ end;
 Serialize = function(tbl, scope) 
   scope = scope or 0;
 
-  local Serialized = {};
+  local Serialized = {}; -- For performance reasons
   local scopeTab = rep(Tab, scope);
   local scopeTab2 = rep(Tab, scope+1);
 
@@ -78,7 +96,8 @@ end;
 
 local SerializeL = {
   formatIndex = formatIndex,
-  formatString = formatString
+  formatString = formatString,
+  serializeArgs = serializeArgs
 }
 
 return setmetatable(SerializeL, {
