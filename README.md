@@ -4,9 +4,9 @@ A efficient Lua 5.1 Serializer
 ## Example
 
 ```lua
-local Serializer = require("./Serializer")
+local Serialize = require("./Serializer")
 
-print(Serializer({
+print(Serialize({
   2,
   true,
   "Hello",
