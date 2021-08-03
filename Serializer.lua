@@ -95,6 +95,7 @@ Serialize = function(tbl, scope)
 end;
 
 local SerializeL = {
+  config = config,
   formatIndex = formatIndex,
   formatString = formatString,
   serializeArgs = serializeArgs
