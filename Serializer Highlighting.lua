@@ -33,7 +33,7 @@ local function serializeArgs(tbl)
     local valueType = Type(v);
     local SerializeIndex = #Serialized + 1;
     if valueType == "string" then
-      Serialized[SerializeIndex] = format("\"%s\"", v);
+      Serialized[SerializeIndex] = format("\27[32m\"%s\"\27[0m", v);
     elseif valueType == "table" then
       Serialized[SerializeIndex] = Serialize(v, 0);
     else
