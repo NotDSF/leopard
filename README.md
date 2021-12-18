@@ -1,5 +1,5 @@
 # Lua-Serializer
-A efficient Lua 5.1 Serializer
+The fastest Lua serializer for 5.1, with extensive support for multiple types.
 
 ## Example
 
@@ -13,10 +13,8 @@ print(Serialize({
   {"Table", true, 2, {}},
   ["Hi"] = {}
 }))
-```
 
-## Output
-```lua
+--[[
 {
     [1] = 2,
     [2] = true,
@@ -29,4 +27,5 @@ print(Serialize({
     },
     ["Hi"] = {}
 }
+--]]
 ```
