@@ -47,7 +47,7 @@ end;
 -- Very scuffed method I know
 
 local function formatString(str) 
-  for i,v in Pairs({ ["\n"] = "\\n", ["\t"] = "\\t", ["\""] = "\\\"" }) do
+  for i,v in Pairs({ ["\n"] = "\\n", ["\t"] = "\\t", ["\""] = "\\\"", ["\0"] = "\\0" }) do
     str = gsub(str, i, v);
   end;
   return str;
