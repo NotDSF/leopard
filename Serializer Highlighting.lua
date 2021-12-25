@@ -1,15 +1,14 @@
-local config = {
-  spaces = 4
-};
+-- This version is built for the roblox platform.
 
 local format   = string.format;
 local rep      = string.rep;
 local Type     = type;
 local Pairs    = pairs;
 local gsub     = string.gsub;
+local sub      = string.sub;
 local Tostring = tostring;
 local concat   = table.concat;
-local Tab      = rep(" ", config.spaces or 4);
+local Tab      = rep(" ", 4);
 
 local Serialize;
 local function formatIndex(idx, scope)
@@ -26,10 +25,10 @@ local function formatIndex(idx, scope)
   return format("[%s]", finishedFormat);
 end;
 
-local function serializeArgs(tbl) 
+local function serializeArgs(...) 
   local Serialized = {}; -- For performance reasons
 
-  for i,v in Pairs(tbl) do
+  for i,v in Pairs({...}) do
     local valueType = Type(v);
     local SerializeIndex = #Serialized + 1;
     if valueType == "string" then
@@ -47,7 +46,7 @@ end;
 -- Very scuffed method I know
 
 local function formatString(str) 
-  for i,v in Pairs({ ["\n"] = "\\n", ["\t"] = "\\t", ["\""] = "\\\"", ["\0"] = "\\0" }) do
+  for i,v in Pairs({ ["\n"] = "\\n", ["\t"] = "\\t", ["\""] = "\\\"" }) do
     str = gsub(str, i, v);
   end;
   return str;
@@ -82,7 +81,7 @@ Serialize = function(tbl, scope)
   -- Remove last comma
   local lastValue = Serialized[#Serialized];
   if lastValue then
-    Serialized[#Serialized] = lastValue:sub(0, -3) .. "\n";
+    Serialized[#Serialized] = sub(lastValue, 0, -3) .. "\n";
   end;
 
   if tblLen > 0 then
