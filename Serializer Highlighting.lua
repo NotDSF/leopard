@@ -6,6 +6,8 @@ local Type     = type;
 local Pairs    = pairs;
 local gsub     = string.gsub;
 local sub      = string.sub;
+local byte     = string.byte;
+local char     = string.char;
 local Tostring = tostring;
 local concat   = table.concat;
 local Tab      = rep(" ", 4);
@@ -46,10 +48,27 @@ end;
 -- Very scuffed method I know
 
 local function formatString(str) 
-  for i,v in Pairs({ ["\n"] = "\\n", ["\t"] = "\\t", ["\""] = "\\\"" }) do
-    str = gsub(str, i, v);
+  local Pos = 1;
+  local String = {};
+  while Pos <= #str do
+    local Key = sub(str, Pos, Pos);
+    if Key == "\n" then
+      String[Pos] = "\\n";
+    elseif Key == "\t" then
+      String[Pos] = "\\t";
+    elseif Key == "\"" then
+      String[Pos] = "\\\"";
+    else
+      local Code = byte(Key);
+      if Code < 32 or Code > 126  then
+        String[Pos] = format("\\%d", Code);
+      else
+        String[Pos] = Key;
+      end;
+    end;
+    Pos++;
   end;
-  return str;
+  return concat(String);
 end;
 
 Serialize = function(tbl, scope) 
