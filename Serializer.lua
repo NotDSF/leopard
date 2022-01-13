@@ -63,7 +63,7 @@ local function formatFunction(func)
       end;
     end;
 
-    return format("function %s(%s) end", proto.namewhat or proto.name, concat(params, ", "));
+    return format("function %s(%s) end", proto.namewhat or proto.name or "", concat(params, ", "));
   end;
   return "function () end"; -- we cannot create a prototype
 end;
