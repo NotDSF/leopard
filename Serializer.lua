@@ -5,31 +5,14 @@ local rep      = string.rep;
 local byte     = string.byte;
 local match    = string.match;
 local info     = debug.getinfo;
+local huge     = math.huge; -- just like your mother
 local Type     = type;
 local Pairs    = pairs;
 local Assert   = assert;
 local Tostring = tostring;
 local concat   = table.concat;
 local Tab      = rep(" ", config.spaces or 4);
-
 local Serialize;
-local function formatIndex(idx, scope)
-  local indexType = Type(idx);
-  local finishedFormat = idx;
-
-  if indexType == "string" then
-    if match(idx, "[^_%a%d]+") then
-      finishedFormat = format("\"%s\"", idx); 
-    else
-      return idx;
-    end;
-  elseif indexType == "table" then
-    scope = scope + 1;
-    finishedFormat = Serialize(idx, scope);
-  end;
-
-  return format("[%s]", finishedFormat);
-end;
 
 local function serializeArgs(tbl) 
   local Serialized = {}; -- For performance reasons
@@ -81,7 +64,7 @@ local function formatString(str)
       String[Pos] = "\\\"";
     else
       local Code = byte(Key);
-      if Code < 32 or Code > 126  then
+      if Code < 32 or Code > 126 then
         String[Pos] = format("\\%d", Code);
       else
         String[Pos] = Key;
@@ -94,12 +77,32 @@ end;
 
 -- We can do a little trolling and use this for booleans too
 local function formatNumber(numb) 
-  if numb == math.huge then
+  if numb == huge then
     return "math.huge";
-  elseif numb == -math.huge then
+  elseif numb == -huge then
     return "-math.huge";
   end;
   return Tostring(numb);
+end;
+
+local function formatIndex(idx, scope)
+  local indexType = Type(idx);
+  local finishedFormat = idx;
+
+  if indexType == "string" then
+    if match(idx, "[^_%a%d]+") then
+      finishedFormat = format("\"%s\"", formatString(idx));
+    else
+      return idx;
+    end;
+  elseif indexType == "table" then
+    scope = scope + 1;
+    finishedFormat = Serialize(idx, scope);
+  elseif indexType == "number" or indexType == "boolean" then
+    finishedFormat = formatNumber(idx);
+  end;
+
+  return format("[%s]", finishedFormat);
 end;
 
 Serialize = function(tbl, scope) 
