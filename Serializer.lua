@@ -96,9 +96,10 @@ end;
 local function formatNumber(numb) 
   if numb == math.huge then
     return "math.huge";
-  else
-    return Tostring(numb);
+  elseif numb == -math.huge then
+    return "-math.huge";
   end;
+  return Tostring(numb);
 end;
 
 Serialize = function(tbl, scope) 
