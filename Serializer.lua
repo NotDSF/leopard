@@ -1,9 +1,10 @@
 local config   = { spaces = 4 };
-local sub      = string.sub;
-local format   = string.format;
-local rep      = string.rep;
-local byte     = string.byte;
-local match    = string.match;
+local str      = string;
+local sub      = str.sub;
+local format   = str.format;
+local rep      = str.rep;
+local byte     = str.byte;
+local match    = str.match;
 local info     = debug.getinfo;
 local huge     = math.huge; -- just like your mother
 local Type     = type;
@@ -46,7 +47,7 @@ local function formatFunction(func)
       end;
     end;
 
-    return format("function %s(%s) end", proto.namewhat or proto.name or "", concat(params, ", "));
+    return format("function (%s) --[[ Function Name: \"%s\" ]] end", concat(params, ", "), proto.namewhat or proto.name or "");
   end;
   return "function () end"; -- we cannot create a prototype
 end;
@@ -100,6 +101,8 @@ local function formatIndex(idx, scope)
     finishedFormat = Serialize(idx, scope);
   elseif indexType == "number" or indexType == "boolean" then
     finishedFormat = formatNumber(idx);
+  elseif indexType == "function" then
+    finishedFormat = formatFunction(idx);
   end;
 
   return format("[%s]", finishedFormat);
