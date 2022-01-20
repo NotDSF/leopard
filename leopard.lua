@@ -170,7 +170,7 @@ function Serializer.FormatString(str)
 end;
 
 function Serializer.UpdateConfig(options) 
-  Assert(Type(options) == "table", "invalid argument #1 to 'new' (table expected)");
+  Assert(Type(options) == "table", "invalid argument #1 to 'UpdateConfig' (table expected)");
   config.spaces = options.spaces or 4;
 end;
 
