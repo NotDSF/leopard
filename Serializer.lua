@@ -15,10 +15,10 @@ local concat   = table.concat;
 local Tab      = rep(" ", config.spaces or 4);
 local Serialize;
 
-local function serializeArgs(tbl) 
+local function serializeArgs(...) 
   local Serialized = {}; -- For performance reasons
 
-  for i,v in Pairs(tbl) do
+  for i,v in Pairs({...}) do
     local valueType = Type(v);
     local SerializeIndex = #Serialized + 1;
     if valueType == "string" then
@@ -109,8 +109,6 @@ local function formatIndex(idx, scope)
 end;
 
 Serialize = function(tbl, scope) 
-  Assert(Type(tbl) == "table", "invalid argument #1 to 'Serialize' (table expected)");
-
   scope = scope or 0;
 
   local Serialized = {}; -- For performance reasons
@@ -155,15 +153,25 @@ Serialize = function(tbl, scope)
   end;
 end;
 
-local SerializeL = {
-  formatIndex = formatIndex,
-  formatString = formatString,
-  serializeArgs = serializeArgs,
-  config = config
-}
+local Serializer = {};
 
-return setmetatable(SerializeL, {
-  __call = function(self, ...)
-    return Serialize(...);
-  end
-});
+function Serializer.Serialize(tbl)
+  Assert(Type(tbl) == "table", "invalid argument #1 to 'Serialize' (table expected)");
+  return Serialize(tbl);
+end;
+
+function Serializer.FormatArguments(...) 
+  return serializeArgs(...);
+end;
+
+function Serializer.FormatString(str) 
+  Assert(Type(str) == "string", "invalid argument #1 to 'FormatString' (string expected)");
+  return formatString(str);
+end;
+
+function Serializer.UpdateConfig(options) 
+  Assert(Type(options) == "table", "invalid argument #1 to 'new' (table expected)");
+  config.spaces = options.spaces or 4;
+end;
+
+return Serializer;
