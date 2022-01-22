@@ -1,13 +1,15 @@
-local config   = { spaces = 4 };
+local config   = { spaces = 4, highlighting = false };
 local str      = string;
+local gme      = game;
 local sub      = str.sub;
 local format   = str.format;
 local rep      = str.rep;
 local byte     = str.byte;
 local match    = str.match;
+local getfn    = gme.GetFullName;
 local info     = debug.getinfo;
 local huge     = math.huge; -- just like your mother
-local Type     = type;
+local Type     = typeof;
 local Pairs    = pairs;
 local Assert   = assert;
 local Tostring = tostring;
@@ -92,7 +94,7 @@ local function formatIndex(idx, scope)
 
   if indexType == "string" then
     if match(idx, "[^_%a%d]+") then
-      finishedFormat = format("\27[32m\"%s\"\27[0m", formatString(idx));
+      finishedFormat = format(config.highlighting and "\27[32m\"%s\"\27[0m" or "\"%s\"", formatString(idx));
     else
       return idx;
     end;
@@ -100,7 +102,11 @@ local function formatIndex(idx, scope)
     scope = scope + 1;
     finishedFormat = Serialize(idx, scope);
   elseif indexType == "number" or indexType == "boolean" then
-    finishedFormat = format("\27[33m%s\27[0m", formatNumber(idx));
+    if config.highlighting then
+      finishedFormat = format("\27[33m%s\27[0m", formatNumber(idx));
+    else
+      finishedFormat = formatNumber(idx);
+    end;
   elseif indexType == "function" then
     finishedFormat = formatFunction(idx);
   end;
@@ -121,17 +127,21 @@ Serialize = function(tbl, scope)
     local valueType = Type(v);
     local SerializeIndex = #Serialized + 1;
     if valueType == "string" then -- Could of made it inline but its better to manage types this way.
-      Serialized[SerializeIndex] = format("%s%s = \27[32m\"%s\"\27[0m,\n", scopeTab2, formattedIndex, formatString(v));
+      Serialized[SerializeIndex] = format(config.highlighting and "%s%s = \27[32m\"%s\"\27[0m,\n" or "%s%s = \"%s\",\n", scopeTab2, formattedIndex, formatString(v));
     elseif valueType == "number" or valueType == "boolean" then
-      Serialized[SerializeIndex] = format("%s%s = \27[33m%s\27[0m,\n", scopeTab2, formattedIndex, formatNumber(v));
+      Serialized[SerializeIndex] = format(config.highlighting and "%s%s = \27[33m%s\27[0m,\n" or "%s%s = %s,\n", scopeTab2, formattedIndex, formatNumber(v));
     elseif valueType == "table" then
       Serialized[SerializeIndex] = format("%s%s = %s,\n", scopeTab2, formattedIndex, Serialize(v, scope+1));
     elseif valueType == "userdata" then
       Serialized[SerializeIndex] = format("%s%s = newproxy(),\n", scopeTab2, formattedIndex);
     elseif valueType == "function" then
       Serialized[SerializeIndex] = format("%s%s = %s,\n", scopeTab2, formattedIndex, formatFunction(v));
+    elseif valueType == "Instance" then
+      Serialized[SerializeIndex] = format("%s%s = %s,\n", scopeTab2, formattedIndex, getfn(gme, v));
+    elseif valueType == "CFrame" or valueType == "Vector3" or valueType == "Vector2" or valueType == "UDim2" then
+      Serialized[SerializeIndex] = format("%s%s = %s.new(%s),\n", scopeTab2, formattedIndex, valueType, Tostring(v));
     else
-      Serialized[SerializeIndex] = format("%s%s = %s,\n", scopeTab2, formattedIndex, Tostring(valueType)); -- Unsupported types.
+      Serialized[SerializeIndex] = format("%s%s = \"%s\",\n", scopeTab2, formattedIndex, Tostring(v)); -- Unsupported types.
     end;
     tblLen = tblLen + 1; -- # messes up with nil values
   end;
@@ -170,8 +180,9 @@ function Serializer.FormatString(str)
 end;
 
 function Serializer.UpdateConfig(options) 
-  Assert(Type(options) == "table", "invalid argument #1 to 'new' (table expected)");
+  Assert(Type(options) == "table", "invalid argument #1 to 'UpdateConfig' (table expected)");
   config.spaces = options.spaces or 4;
+  config.highlighting = options.highlighting;
 end;
 
 return Serializer;
