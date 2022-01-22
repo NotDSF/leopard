@@ -137,7 +137,7 @@ Serialize = function(tbl, scope)
     elseif valueType == "function" then
       Serialized[SerializeIndex] = format("%s%s = %s,\n", scopeTab2, formattedIndex, formatFunction(v));
     elseif valueType == "Instance" then
-      Serialized[SerializeIndex] = format("%s%s = %s,\n", scopeTab2, formattedIndex, getfn(gme, v));
+      Serialized[SerializeIndex] = format("%s%s = %s,\n", scopeTab2, formattedIndex, getfn(v));
     elseif valueType == "CFrame" or valueType == "Vector3" or valueType == "Vector2" or valueType == "UDim2" then
       Serialized[SerializeIndex] = format("%s%s = %s.new(%s),\n", scopeTab2, formattedIndex, valueType, Tostring(v));
     else
