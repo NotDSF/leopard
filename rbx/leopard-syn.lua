@@ -109,6 +109,10 @@ local function formatIndex(idx, scope)
     end;
   elseif indexType == "function" then
     finishedFormat = formatFunction(idx);
+  elseif indexType == "Instance" then
+    finishedFormat = getfn(idx);
+  else
+    finishedFormat = Tostring(idx);
   end;
 
   return format("[%s]", finishedFormat);
