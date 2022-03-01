@@ -1,3 +1,5 @@
+-- This branch may be outdated from the main version!
+
 local config   = { spaces = 4, highlighting = false };
 local str      = string;
 local gme      = game;
