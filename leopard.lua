@@ -5,6 +5,8 @@ local format   = str.format;
 local rep      = str.rep;
 local byte     = str.byte;
 local match    = str.match;
+local dump     = str.dump or dumpstring;
+local gsub     = str.gsub;
 local info     = debug.getinfo;
 local huge     = math.huge; -- just like your mother
 local Type     = type;
@@ -13,7 +15,7 @@ local Assert   = assert;
 local Tostring = tostring;
 local concat   = table.concat;
 local Tab      = rep(" ", config.spaces or 4);
-local Serialize;
+local Serialize, SerializeCompress;
 
 local function serializeArgs(...) 
   local Serialized = {}; -- For performance reasons
@@ -33,7 +35,15 @@ local function serializeArgs(...)
   return concat(Serialized, ", ");
 end;
 
+local function ByteString(k) 
+  return "\\" .. byte(k);
+end;
+
 local function formatFunction(func)
+  if dump and info and info(func).what ~= "C" then
+    return format("function(...) return loadstring(\"%s\")(...); end", gsub(dump(func), ".", ByteString));
+  end;
+
   if info then -- Creates function prototypes
     local proto = info(func);
     local params = {};
@@ -47,9 +57,10 @@ local function formatFunction(func)
       end;
     end;
 
-    return format("function (%s) --[[ Function Name: \"%s\" ]] end", concat(params, ", "), proto.namewhat or proto.name or "");
+    return format("function(%s) --[[ Function Name: \"%s\", Type: %s ]] end", concat(params, ", "), proto.namewhat or proto.name or "", proto.what);
   end;
-  return "function () end"; -- we cannot create a prototype
+
+  return "function()end"; -- we cannot create a prototype
 end;
 
 local function formatString(str) 
@@ -97,8 +108,12 @@ local function formatIndex(idx, scope)
       return idx;
     end;
   elseif indexType == "table" then
-    scope = scope + 1;
-    finishedFormat = Serialize(idx, scope);
+    if not scope then
+      finishedFormat = SerializeCompress(idx);
+    else
+      scope = scope + 1;
+      finishedFormat = Serialize(idx, scope);
+    end;
   elseif indexType == "number" or indexType == "boolean" then
     finishedFormat = formatNumber(idx);
   elseif indexType == "function" then
@@ -108,7 +123,52 @@ local function formatIndex(idx, scope)
   return format("[%s]", finishedFormat);
 end;
 
-Serialize = function(tbl, scope) 
+SerializeCompress = function(tbl, checked)
+  checked = checked or {};
+  
+  if checked[tbl] then
+    return format("\"%s -- recursive table\"", Tostring(tbl));
+  end;
+  checked[tbl] = true;
+
+  local Serialized = {};
+
+  for i,v in Pairs(tbl) do
+    local formattedIndex = formatIndex(i);
+    local valueType = Type(v);
+    local SerializeIndex = #Serialized + 1;
+    if valueType == "string" then -- Could of made it inline but its better to manage types this way.
+      Serialized[SerializeIndex] = format("%s=\"%s\",", formattedIndex, formatString(v));
+    elseif valueType == "number" or valueType == "boolean" then
+      Serialized[SerializeIndex] = format("%s=%s,", formattedIndex, formatNumber(v));
+    elseif valueType == "table" then
+      Serialized[SerializeIndex] = format("%s=%s,", formattedIndex, SerializeCompress(v, checked));
+    elseif valueType == "userdata" then
+      Serialized[SerializeIndex] = format("%s=newproxy(),", formattedIndex);
+    elseif valueType == "function" then
+      Serialized[SerializeIndex] = format("%s=%s,", formattedIndex, formatFunction(v));
+    else
+      Serialized[SerializeIndex] = format("%s=%s,", formattedIndex, Tostring(valueType)); -- Unsupported types.
+    end;
+  end;
+
+    -- Remove last comma
+  local lastValue = Serialized[#Serialized];
+  if lastValue then
+    Serialized[#Serialized] = sub(lastValue, 0, -2);
+  end;
+
+  return format("{%s}", concat(Serialized));
+end;
+
+Serialize = function(tbl, scope, checked) 
+  checked = checked or {};
+
+  if checked[tbl] then
+    return format("\"%s -- recursive table\"", Tostring(tbl));
+  end;
+  checked[tbl] = true;
+
   scope = scope or 0;
 
   local Serialized = {}; -- For performance reasons
@@ -125,7 +185,7 @@ Serialize = function(tbl, scope)
     elseif valueType == "number" or valueType == "boolean" then
       Serialized[SerializeIndex] = format("%s%s = %s,\n", scopeTab2, formattedIndex, formatNumber(v));
     elseif valueType == "table" then
-      Serialized[SerializeIndex] = format("%s%s = %s,\n", scopeTab2, formattedIndex, Serialize(v, scope+1));
+      Serialized[SerializeIndex] = format("%s%s = %s,\n", scopeTab2, formattedIndex, Serialize(v, scope+1, checked));
     elseif valueType == "userdata" then
       Serialized[SerializeIndex] = format("%s%s = newproxy(),\n", scopeTab2, formattedIndex);
     elseif valueType == "function" then
@@ -160,6 +220,11 @@ function Serializer.Serialize(tbl)
   return Serialize(tbl);
 end;
 
+function Serializer.SerializeCompress(tbl) 
+  Assert(Type(tbl) == "table", "invalid argument #1 to 'SerializeCompress' (table expected)");
+  return SerializeCompress(tbl);
+end;
+
 function Serializer.FormatArguments(...) 
   return serializeArgs(...);
 end;
@@ -172,6 +237,7 @@ end;
 function Serializer.UpdateConfig(options) 
   Assert(Type(options) == "table", "invalid argument #1 to 'UpdateConfig' (table expected)");
   config.spaces = options.spaces or 4;
+  Tab = rep(" ", config.spaces);
 end;
 
 return Serializer;
