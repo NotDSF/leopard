@@ -1,23 +1,38 @@
--- This branch may be outdated from the main version!
-
 local config   = { spaces = 4, highlighting = false };
+local clonef   = clonefunction;
 local str      = string;
 local gme      = game;
-local sub      = str.sub;
-local format   = str.format;
-local rep      = str.rep;
-local byte     = str.byte;
-local match    = str.match;
-local getfn    = gme.GetFullName;
-local info     = debug.getinfo;
+local sub      = clonef(str.sub);
+local format   = clonef(str.format);
+local rep      = clonef(str.rep);
+local byte     = clonef(str.byte);
+local match    = clonef(str.match);
+local getfn    = clonef(gme.GetFullName);
+local info     = clonef(debug.getinfo);
 local huge     = math.huge; -- just like your mother
-local Type     = typeof;
-local Pairs    = pairs;
-local Assert   = assert;
-local Tostring = tostring;
-local concat   = table.concat;
+local Type     = clonef(typeof);
+local Pairs    = clonef(pairs);
+local Assert   = clonef(assert);
+local tostring = clonef(tostring);
+local concat   = clonef(table.concat);
+local getmet   = clonef(getmetatable);
+local rawget   = clonef(rawget);
+local rawset   = clonef(rawset);
 local Tab      = rep(" ", config.spaces or 4);
 local Serialize;
+
+local function Tostring(obj) 
+  local mt, r, b = getmet(obj);
+  if not mt then
+    return tostring(obj);
+  end;
+  
+  b = rawget(mt, "__tostring");
+  rawset(mt, "__tostring", nil);
+  r = tostring(obj);
+  rawset(mt, "__tostring", b);
+  return r;
+end;
 
 local function serializeArgs(...) 
   local Serialized = {}; -- For performance reasons
