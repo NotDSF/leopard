@@ -23,7 +23,7 @@ local Serialize;
 
 local function Tostring(obj) 
   local mt, r, b = getmet(obj);
-  if not mt then
+  if not mt or Type(mt) ~= "table" then
     return tostring(obj);
   end;
   
@@ -147,23 +147,26 @@ Serialize = function(tbl, scope)
     local formattedIndex = formatIndex(i, scope);
     local valueType = Type(v);
     local SerializeIndex = #Serialized + 1;
+    local IndexNeeded = tblLen + 1 ~= i;
+
     if valueType == "string" then -- Could of made it inline but its better to manage types this way.
-      Serialized[SerializeIndex] = format(config.highlighting and "%s%s = \27[32m\"%s\"\27[0m,\n" or "%s%s = \"%s\",\n", scopeTab2, formattedIndex, formatString(v));
+      Serialized[SerializeIndex] = format(config.highlighting and "%s%s\27[32m\"%s\"\27[0m,\n" or "%s%s\"%s\",\n", scopeTab2, format(IndexNeeded and "%s = " or "", formattedIndex), formatString(v));
     elseif valueType == "number" or valueType == "boolean" then
-      Serialized[SerializeIndex] = format(config.highlighting and "%s%s = \27[33m%s\27[0m,\n" or "%s%s = %s,\n", scopeTab2, formattedIndex, formatNumber(v));
+      Serialized[SerializeIndex] = format(config.highlighting and "%s%s\27[33m%s\27[0m,\n" or "%s%s%s,\n", scopeTab2, format(IndexNeeded and "%s = " or "", formattedIndex), formatNumber(v));
     elseif valueType == "table" then
-      Serialized[SerializeIndex] = format("%s%s = %s,\n", scopeTab2, formattedIndex, Serialize(v, scope+1));
+      Serialized[SerializeIndex] = format("%s%s%s,\n", scopeTab2, format(IndexNeeded and "%s = " or "", formattedIndex), Serialize(v, scope+1));
     elseif valueType == "userdata" then
-      Serialized[SerializeIndex] = format("%s%s = newproxy(),\n", scopeTab2, formattedIndex);
+      Serialized[SerializeIndex] = format("%s%s newproxy(),\n", scopeTab2, format(IndexNeeded and "%s = " or "", formattedIndex));
     elseif valueType == "function" then
-      Serialized[SerializeIndex] = format("%s%s = %s,\n", scopeTab2, formattedIndex, formatFunction(v));
+      Serialized[SerializeIndex] = format("%s%s%s,\n", scopeTab2, format(IndexNeeded and "%s = " or "", formattedIndex), formatFunction(v));
     elseif valueType == "Instance" then
-      Serialized[SerializeIndex] = format("%s%s = %s,\n", scopeTab2, formattedIndex, getfn(v));
+      Serialized[SerializeIndex] = format("%s%s%s,\n", scopeTab2, format(IndexNeeded and "%s = " or "", formattedIndex), getfn(v));
     elseif valueType == "CFrame" or valueType == "Vector3" or valueType == "Vector2" or valueType == "UDim2" then
-      Serialized[SerializeIndex] = format("%s%s = %s.new(%s),\n", scopeTab2, formattedIndex, valueType, Tostring(v));
+      Serialized[SerializeIndex] = format("%s%s%s.new(%s),\n", scopeTab2, format(IndexNeeded and "%s = " or "", formattedIndex), valueType, Tostring(v));
     else
-      Serialized[SerializeIndex] = format("%s%s = \"%s\",\n", scopeTab2, formattedIndex, Tostring(v)); -- Unsupported types.
+      Serialized[SerializeIndex] = format("%s%s\"%s\",\n", scopeTab2, format(IndexNeeded and "%s = " or "", formattedIndex), Tostring(v)); -- Unsupported types.
     end;
+
     tblLen = tblLen + 1; -- # messes up with nil values
   end;
 
