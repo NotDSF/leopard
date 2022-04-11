@@ -17,7 +17,7 @@ local concat   = table.concat;
 local Tab      = rep(" ", config.spaces or 4);
 local Serialize, SerializeCompress;
 
-local function serializeArgs(...) 
+local function SerializeArgs(...) 
   local Serialized = {}; -- For performance reasons
 
   for i,v in Pairs({...}) do
@@ -39,7 +39,7 @@ local function ByteString(k)
   return "\\" .. byte(k);
 end;
 
-local function formatFunction(func)
+local function FormatFunction(func)
   if dump and info and info(func).what ~= "C" then
     return format("function(...) return loadstring(\"%s\")(...); end", gsub(dump(func), ".", ByteString));
   end;
@@ -63,7 +63,7 @@ local function formatFunction(func)
   return "function()end"; -- we cannot create a prototype
 end;
 
-local function formatString(str) 
+local function FormatString(str) 
   local Pos = 1;
   local String = {};
   while Pos <= #str do
@@ -88,7 +88,7 @@ local function formatString(str)
 end;
 
 -- We can do a little trolling and use this for booleans too
-local function formatNumber(numb) 
+local function FormatNumber(numb) 
   if numb == huge then
     return "math.huge";
   elseif numb == -huge then
@@ -97,13 +97,13 @@ local function formatNumber(numb)
   return Tostring(numb);
 end;
 
-local function formatIndex(idx, scope)
+local function FormatIndex(idx, scope)
   local indexType = Type(idx);
   local finishedFormat = idx;
 
   if indexType == "string" then
     if match(idx, "[^_%a%d]+") then
-      finishedFormat = format("\"%s\"", formatString(idx));
+      finishedFormat = format("\"%s\"", FormatString(idx));
     else
       return idx;
     end;
@@ -115,9 +115,9 @@ local function formatIndex(idx, scope)
       finishedFormat = Serialize(idx, scope);
     end;
   elseif indexType == "number" or indexType == "boolean" then
-    finishedFormat = formatNumber(idx);
+    finishedFormat = FormatNumber(idx);
   elseif indexType == "function" then
-    finishedFormat = formatFunction(idx);
+    finishedFormat = FormatFunction(idx);
   end;
 
   return format("[%s]", finishedFormat);
@@ -132,24 +132,29 @@ SerializeCompress = function(tbl, checked)
   checked[tbl] = true;
 
   local Serialized = {};
+  local tblLen = 0;
 
   for i,v in Pairs(tbl) do
-    local formattedIndex = formatIndex(i);
+    local formattedIndex = FormatIndex(i);
     local valueType = Type(v);
     local SerializeIndex = #Serialized + 1;
+    local IndexNeeded = tblLen + 1 ~= i;
+    
     if valueType == "string" then -- Could of made it inline but its better to manage types this way.
-      Serialized[SerializeIndex] = format("%s=\"%s\",", formattedIndex, formatString(v));
+      Serialized[SerializeIndex] = format("%s\"%s\",", format(IndexNeeded and "%s = " or "", formattedIndex), FormatString(v));
     elseif valueType == "number" or valueType == "boolean" then
-      Serialized[SerializeIndex] = format("%s=%s,", formattedIndex, formatNumber(v));
+      Serialized[SerializeIndex] = format("%s%s,", format(IndexNeeded and "%s = " or "", formattedIndex), FormatNumber(v));
     elseif valueType == "table" then
-      Serialized[SerializeIndex] = format("%s=%s,", formattedIndex, SerializeCompress(v, checked));
+      Serialized[SerializeIndex] = format("%s%s,", format(IndexNeeded and "%s = " or "", formattedIndex), SerializeCompress(v, checked));
     elseif valueType == "userdata" then
-      Serialized[SerializeIndex] = format("%s=newproxy(),", formattedIndex);
+      Serialized[SerializeIndex] = format("%snewproxy(),", format(IndexNeeded and "%s = " or "", formattedIndex));
     elseif valueType == "function" then
-      Serialized[SerializeIndex] = format("%s=%s,", formattedIndex, formatFunction(v));
+      Serialized[SerializeIndex] = format("%s%s,", format(IndexNeeded and "%s = " or "", formattedIndex), FormatFunction(v));
     else
-      Serialized[SerializeIndex] = format("%s=%s,", formattedIndex, Tostring(valueType)); -- Unsupported types.
+      Serialized[SerializeIndex] = format("%s%s,", format(IndexNeeded and "%s = " or "", formattedIndex), Tostring(valueType)); -- Unsupported types.
     end;
+
+    tblLen = tblLen + 1; -- # messes up with nil values
   end;
 
     -- Remove last comma
@@ -177,22 +182,25 @@ Serialize = function(tbl, scope, checked)
 
   local tblLen = 0;
   for i,v in Pairs(tbl) do
-    local formattedIndex = formatIndex(i, scope);
+    local formattedIndex = FormatIndex(i, scope);
     local valueType = Type(v);
     local SerializeIndex = #Serialized + 1;
+    local IndexNeeded = tblLen + 1 ~= i;
+
     if valueType == "string" then -- Could of made it inline but its better to manage types this way.
-      Serialized[SerializeIndex] = format("%s%s = \"%s\",\n", scopeTab2, formattedIndex, formatString(v));
+      Serialized[SerializeIndex] = format("%s%s\"%s\",\n", scopeTab2, format(IndexNeeded and "%s = " or "", formattedIndex), FormatString(v));
     elseif valueType == "number" or valueType == "boolean" then
-      Serialized[SerializeIndex] = format("%s%s = %s,\n", scopeTab2, formattedIndex, formatNumber(v));
+      Serialized[SerializeIndex] = format("%s%s%s,\n", scopeTab2, format(IndexNeeded and "%s = " or "", formattedIndex), FormatNumber(v));
     elseif valueType == "table" then
-      Serialized[SerializeIndex] = format("%s%s = %s,\n", scopeTab2, formattedIndex, Serialize(v, scope+1, checked));
+      Serialized[SerializeIndex] = format("%s%s%s,\n", scopeTab2, format(IndexNeeded and "%s = " or "", formattedIndex), Serialize(v, scope+1, checked));
     elseif valueType == "userdata" then
-      Serialized[SerializeIndex] = format("%s%s = newproxy(),\n", scopeTab2, formattedIndex);
+      Serialized[SerializeIndex] = format("%s%snewproxy(),\n", scopeTab2, format(IndexNeeded and "%s = " or "", formattedIndex));
     elseif valueType == "function" then
-      Serialized[SerializeIndex] = format("%s%s = %s,\n", scopeTab2, formattedIndex, formatFunction(v));
+      Serialized[SerializeIndex] = format("%s%s%s,\n", scopeTab2, format(IndexNeeded and "%s = " or "", formattedIndex), FormatFunction(v));
     else
-      Serialized[SerializeIndex] = format("%s%s = %s,\n", scopeTab2, formattedIndex, Tostring(valueType)); -- Unsupported types.
+      Serialized[SerializeIndex] = format("%s%s%s,\n", scopeTab2, format(IndexNeeded and "%s = " or "", formattedIndex), Tostring(valueType)); -- Unsupported types.
     end;
+    
     tblLen = tblLen + 1; -- # messes up with nil values
   end;
 
@@ -226,12 +234,12 @@ function Serializer.SerializeCompress(tbl)
 end;
 
 function Serializer.FormatArguments(...) 
-  return serializeArgs(...);
+  return SerializeArgs(...);
 end;
 
 function Serializer.FormatString(str) 
   Assert(Type(str) == "string", "invalid argument #1 to 'FormatString' (string expected)");
-  return formatString(str);
+  return FormatString(str);
 end;
 
 function Serializer.UpdateConfig(options) 
