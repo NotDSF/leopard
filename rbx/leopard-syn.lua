@@ -21,6 +21,42 @@ local rawset   = clonef(rawset);
 local Tab      = rep(" ", config.spaces or 4);
 local Serialize;
 
+-- Kill me
+local DataTypes = {
+  Axes = true,
+  BrickColor = true,
+  CatalogSearchParams = true,
+  CFrame = true,
+  Color3 = true,
+  ColorSequence = true,
+  ColorSequenceKeypoint = true,
+  DateTime = true,
+  DockWidgetPluginGuiInfo = true,
+  Enum = true,
+  Faces = true,
+  Instance = true,
+  NumberRange = true,
+  NumberSequence = true,
+  NumberSequenceKeypoint = true,
+  OverlapParams = true,
+  PathWaypoint = true,
+  PhysicalProperties = true,
+  Random = true,
+  Ray = true,
+  RaycastParams = true,
+  RaycastResult = true,
+  Rect = true,
+  Region3 = true,
+  Region3int16 = true,
+  TweenInfo = true,
+  UDim = true,
+  UDim2 = true,
+  Vector2 = true,
+  Vector2int16 = true,
+  Vector3 = true,
+  Vector3int16 = true
+}
+
 local function Tostring(obj) 
   local mt, r, b = getmet(obj);
   if not mt or Type(mt) ~= "table" then
@@ -144,27 +180,27 @@ Serialize = function(tbl, scope)
 
   local tblLen = 0;
   for i,v in Pairs(tbl) do
-    local formattedIndex = formatIndex(i, scope);
+    local IndexNeeded = tblLen + 1 ~= i;
+    local formattedIndex = format(IndexNeeded and "%s = " or "", formatIndex(i, scope));
     local valueType = Type(v);
     local SerializeIndex = #Serialized + 1;
-    local IndexNeeded = tblLen + 1 ~= i;
 
     if valueType == "string" then -- Could of made it inline but its better to manage types this way.
-      Serialized[SerializeIndex] = format(config.highlighting and "%s%s\27[32m\"%s\"\27[0m,\n" or "%s%s\"%s\",\n", scopeTab2, format(IndexNeeded and "%s = " or "", formattedIndex), formatString(v));
+      Serialized[SerializeIndex] = format(config.highlighting and "%s%s\27[32m\"%s\"\27[0m,\n" or "%s%s\"%s\",\n", scopeTab2, formattedIndex, formatString(v));
     elseif valueType == "number" or valueType == "boolean" then
-      Serialized[SerializeIndex] = format(config.highlighting and "%s%s\27[33m%s\27[0m,\n" or "%s%s%s,\n", scopeTab2, format(IndexNeeded and "%s = " or "", formattedIndex), formatNumber(v));
+      Serialized[SerializeIndex] = format(config.highlighting and "%s%s\27[33m%s\27[0m,\n" or "%s%s%s,\n", scopeTab2, formattedIndex, formatNumber(v));
     elseif valueType == "table" then
-      Serialized[SerializeIndex] = format("%s%s%s,\n", scopeTab2, format(IndexNeeded and "%s = " or "", formattedIndex), Serialize(v, scope+1));
+      Serialized[SerializeIndex] = format("%s%s%s,\n", scopeTab2, formattedIndex, Serialize(v, scope+1));
     elseif valueType == "userdata" then
-      Serialized[SerializeIndex] = format("%s%s newproxy(),\n", scopeTab2, format(IndexNeeded and "%s = " or "", formattedIndex));
+      Serialized[SerializeIndex] = format("%s%s newproxy(),\n", scopeTab2, formattedIndex);
     elseif valueType == "function" then
-      Serialized[SerializeIndex] = format("%s%s%s,\n", scopeTab2, format(IndexNeeded and "%s = " or "", formattedIndex), formatFunction(v));
+      Serialized[SerializeIndex] = format("%s%s%s,\n", scopeTab2, formattedIndex, formatFunction(v));
     elseif valueType == "Instance" then
-      Serialized[SerializeIndex] = format("%s%s%s,\n", scopeTab2, format(IndexNeeded and "%s = " or "", formattedIndex), getfn(v));
-    elseif valueType == "CFrame" or valueType == "Vector3" or valueType == "Vector2" or valueType == "UDim2" then
-      Serialized[SerializeIndex] = format("%s%s%s.new(%s),\n", scopeTab2, format(IndexNeeded and "%s = " or "", formattedIndex), valueType, Tostring(v));
+      Serialized[SerializeIndex] = format("%s%s%s,\n", scopeTab2, formattedIndex, getfn(v));
+    elseif DataTypes[valueType] then
+      Serialized[SerializeIndex] = format("%s%s%s.new(%s),\n", scopeTab2, formattedIndex, valueType, Tostring(v));
     else
-      Serialized[SerializeIndex] = format("%s%s\"%s\",\n", scopeTab2, format(IndexNeeded and "%s = " or "", formattedIndex), Tostring(v)); -- Unsupported types.
+      Serialized[SerializeIndex] = format("%s%s\"%s\",\n", scopeTab2, formattedIndex, Tostring(v)); -- Unsupported types.
     end;
 
     tblLen = tblLen + 1; -- # messes up with nil values
@@ -207,6 +243,7 @@ function Serializer.UpdateConfig(options)
   Assert(Type(options) == "table", "invalid argument #1 to 'UpdateConfig' (table expected)");
   config.spaces = options.spaces or 4;
   config.highlighting = options.highlighting;
+  Tab = rep(" ", config.spaces or 4);
 end;
 
 return Serializer;
