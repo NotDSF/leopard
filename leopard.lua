@@ -11,7 +11,6 @@ local info     = debug.getinfo;
 local huge     = math.huge; -- just like your mother
 local Type     = type;
 local Pairs    = pairs;
-local Assert   = assert;
 local Tostring = tostring;
 local concat   = table.concat;
 local Tab      = rep(" ", config.spaces or 4);
@@ -224,12 +223,16 @@ end;
 local Serializer = {};
 
 function Serializer.Serialize(tbl)
-  Assert(Type(tbl) == "table", "invalid argument #1 to 'Serialize' (table expected)");
+  if Type(tbl) ~= "table" then
+    error("invalid argument #1 to 'Serialize' (table expected)");
+  end;
   return Serialize(tbl);
 end;
 
 function Serializer.SerializeCompress(tbl) 
-  Assert(Type(tbl) == "table", "invalid argument #1 to 'SerializeCompress' (table expected)");
+  if Type(tbl) ~= "table" then
+    error("invalid argument #1 to 'SerializeCompress' (table expected)");
+  end;
   return SerializeCompress(tbl);
 end;
 
@@ -237,13 +240,17 @@ function Serializer.FormatArguments(...)
   return SerializeArgs(...);
 end;
 
-function Serializer.FormatString(str) 
-  Assert(Type(str) == "string", "invalid argument #1 to 'FormatString' (string expected)");
+function Serializer.FormatString(str)
+  if Type(str) ~= "string" then
+    error("invalid argument #1 to 'FormatString' (string expected)");
+  end;
   return FormatString(str);
 end;
 
 function Serializer.UpdateConfig(options) 
-  Assert(Type(options) == "table", "invalid argument #1 to 'UpdateConfig' (table expected)");
+  if Type(options) ~= "table" then
+    error("invalid argument #1 to 'UpdateConfig' (table expected)")
+  end;
   config.spaces = options.spaces or 4;
   Tab = rep(" ", config.spaces);
 end;
