@@ -171,7 +171,14 @@ local function formatIndex(idx, scope)
   return format("[%s]", finishedFormat);
 end;
 
-Serialize = function(tbl, scope) 
+Serialize = function(tbl, scope, checked) 
+  checked = checked or {};
+
+  if checked[tbl] then
+    return format("\"%s -- recursive table\"", Tostring(tbl));
+  end;
+
+  checked[tbl] = true;
   scope = scope or 0;
 
   local Serialized = {}; -- For performance reasons
@@ -190,7 +197,7 @@ Serialize = function(tbl, scope)
     elseif valueType == "number" or valueType == "boolean" then
       Serialized[SerializeIndex] = format(config.highlighting and "%s%s\27[33m%s\27[0m,\n" or "%s%s%s,\n", scopeTab2, formattedIndex, formatNumber(v));
     elseif valueType == "table" then
-      Serialized[SerializeIndex] = format("%s%s%s,\n", scopeTab2, formattedIndex, Serialize(v, scope+1));
+      Serialized[SerializeIndex] = format("%s%s%s,\n", scopeTab2, formattedIndex, Serialize(v, scope+1, checked));
     elseif valueType == "userdata" then
       Serialized[SerializeIndex] = format("%s%s newproxy(),\n", scopeTab2, formattedIndex);
     elseif valueType == "function" then
@@ -226,7 +233,10 @@ end;
 local Serializer = {};
 
 function Serializer.Serialize(tbl)
-  Assert(Type(tbl) == "table", "invalid argument #1 to 'Serialize' (table expected)");
+  if Type(tbl) ~= "table" then
+    error("invalid argument #1 to 'Serialize' (table expected)");
+  end;
+  Assert(Type(tbl) == "table", "");
   return Serialize(tbl);
 end;
 
@@ -235,7 +245,9 @@ function Serializer.FormatArguments(...)
 end;
 
 function Serializer.FormatString(str) 
-  Assert(Type(str) == "string", "invalid argument #1 to 'FormatString' (string expected)");
+  if Type(str) ~= "string" then
+    error("invalid argument #1 to 'FormatString' (string expected)");
+  end;
   return formatString(str);
 end;
 
